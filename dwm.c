@@ -41,6 +41,7 @@
 #endif /* XINERAMA */
 #include <X11/Xft/Xft.h>
 
+
 #include "drw.h"
 #include "util.h"
 
@@ -274,6 +275,9 @@ static Window root, wmcheckwin;
 /* configuration, allows nested code to access above variables */
 #include "config.h"
 
+#define _COM_SERVER
+#include "com.h"
+
 /* compile-time check if all tags fit into an unsigned int bit array. */
 struct NumTags { char limitexceeded[LENGTH(tags) > 31 ? -1 : 1]; };
 
@@ -477,6 +481,7 @@ cleanup(void)
 	Monitor *m;
 	size_t i;
 
+        sock_cleanup(0);
 	view(&a);
 	selmon->lt[selmon->sellt] = &foo;
 	for (m = mons; m; m = m->next)
@@ -1286,6 +1291,14 @@ resizeclient(Client *c, int x, int y, int w, int h)
 	c->oldw = c->w; c->w = wc.width = w;
 	c->oldh = c->h; c->h = wc.height = h;
 	wc.border_width = c->bw;
+	if (((nexttiled(c->mon->clients) == c && !nexttiled(c->next))
+	    || &monocle == c->mon->lt[c->mon->sellt]->arrange)
+	    && !c->isfullscreen && !c->isfloating
+	    && NULL != c->mon->lt[c->mon->sellt]->arrange) {
+		c->w = wc.width += c->bw * 2;
+		c->h = wc.height += c->bw * 2;
+		wc.border_width = 0;
+	}
 	XConfigureWindow(dpy, c->win, CWX|CWY|CWWidth|CWHeight|CWBorderWidth, &wc);
 	configure(c);
 	XSync(dpy, False);
@@ -1379,9 +1392,12 @@ run(void)
 	XEvent ev;
 	/* main event loop */
 	XSync(dpy, False);
-	while (running && !XNextEvent(dpy, &ev))
+	while (running && !XNextEvent(dpy, &ev)) {
 		if (handler[ev.type])
 			handler[ev.type](&ev); /* call handler */
+                sock_poll();
+        }
+
 }
 
 void
@@ -2145,7 +2161,15 @@ main(int argc, char *argv[])
 {
 	if (argc == 2 && !strcmp("-v", argv[1]))
 		die("dwm-"VERSION);
-	else if (argc != 1)
+        else if (argc == 2 && !strcmp("-d", argv[1])) {
+          sock_init();
+          while (1) {
+            sock_poll();
+            sleep(1);
+          }
+          sock_cleanup(0);
+          die("done testing sockets");
+        } else if (argc != 1)
 		die("usage: dwm [-v]");
 	if (!setlocale(LC_CTYPE, "") || !XSupportsLocale())
 		fputs("warning: no locale support\n", stderr);
@@ -2153,6 +2177,7 @@ main(int argc, char *argv[])
 		die("dwm: cannot open display");
 	checkotherwm();
 	setup();
+        sock_init();
 #ifdef __OpenBSD__
 	if (pledge("stdio rpath proc exec", NULL) == -1)
 		die("pledge");
