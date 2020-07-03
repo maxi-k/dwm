@@ -1,3 +1,12 @@
+# DWM 
+[DWM](https://dwm.suckless.org/) with some patches.
+
+[WIP]: Adds a bspwm-like client/server architecture for controlling dwm at runtime.
+- Client: `dwmc`. Sends it's stdin to dwm, writes responses to stdout. 
+- Server: Part of dwm, defined in `com.h`. Message handling done in `handle_msg`.
+
+## Original Readme
+```
 dwm - dynamic window manager
 ============================
 dwm is an extremely fast, small, and dynamic window manager for X.
@@ -46,3 +55,4 @@ Configuration
 -------------
 The configuration of dwm is done by creating a custom config.h
 and (re)compiling the source code.
+```
