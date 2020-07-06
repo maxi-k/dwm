@@ -1,5 +1,6 @@
 #define _COM_CLIENT
 #include "com.h"
+#include "util.h"
 
 #include <signal.h>
 #include <errno.h>
@@ -19,6 +20,16 @@ void closer(int arg) {
 }
 
 int main(int argc, char** argv) {
+
+  if (argc == 2) {
+    if(!strcmp("-s", argv[1]))
+       die("Buffer Size %d", BUFSIZE);
+    if(!strcmp("-v", argv[1]))
+       die("dwm-"VERSION);
+    if(!strcmp("-h", argv[1]) || !strcmp("--help", argv[1]))
+      die("No Args: Send stdin to dwm\nWith Args:\n -s: Print buffer size\n -v: Print dwm version");
+  }
+
   signal(SIGINT, closer);
 
   fd = socket(AF_UNIX, SOCK_STREAM, 0);

@@ -6,6 +6,9 @@ include config.mk
 SRC = drw.c dwm.c util.c
 OBJ = ${SRC:.c=.o}
 
+SRC_CLIENT = dwmc.c util.c
+OBJ_CLIENT = ${SRC_CLIENT:.c=.o}
+
 all: options dwm dwmc
 
 options:
@@ -25,8 +28,8 @@ config.h:
 dwm: ${OBJ}
 	${CC} -o $@ ${OBJ} ${LDFLAGS}
 
-dwmc: dwmc.o config.h
-	${CC} -o $@ dwmc.o ${LDFLAGS}
+dwmc: ${OBJ_CLIENT}
+	${CC} -o $@ ${OBJ_CLIENT} ${LDFLAGS}
 
 clean:
 	rm -f dwm ${OBJ} dwm-${VERSION}.tar.gz
