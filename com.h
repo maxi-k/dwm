@@ -28,56 +28,56 @@ int handle_msg(char* msg, unsigned len, char* sendbuf) {
   return 3;
 }
 // -----------------------------------------------------------------------------
-int fd = -1;
-long save_fd;
+int sock_fd = -1;
+long save_sock_fd;
 struct sockaddr_un addr;
 char recvbuf[BUFSIZE];
 char sendbuf[BUFSIZE];
 // -----------------------------------------------------------------------------
 void sock_cleanup(int arg) {
-  close(fd);
+  close(sock_fd);
   remove(SOCKFILE);
   exit(0);
 }
 // -----------------------------------------------------------------------------
 int sock_init() {
   signal(SIGINT, sock_cleanup);
-  fd = socket(AF_UNIX, SOCK_STREAM, 0);
-  if (fd == -1) {
+  sock_fd = socket(AF_UNIX, SOCK_STREAM, 0);
+  if (sock_fd == -1) {
     printerr("Failed to create socket.\n");
     return -1;
   }
 
   addr.sun_family = AF_UNIX;
   snprintf(addr.sun_path, sizeof(addr.sun_path), SOCKFILE);
-  int con = bind(fd, (struct sockaddr *) &addr, sizeof(addr));
+  int con = bind(sock_fd, (struct sockaddr *) &addr, sizeof(addr));
   if (con == -1) {
     printerr("Failed to bind socket.\n");
     return -1;
   }
   printf("Connected to socket.\n");
 
-  int lis = listen(fd, 10);
+  int lis = listen(sock_fd, 10);
   if (lis == -1) {
     printerr("Failed to listen on socket\n");
     return -1;
   }
   printf("Listening on socket\nSetting to not block\n");
 
-  save_fd = fcntl(fd, F_GETFL) | O_NONBLOCK;
-  fcntl(fd, F_SETFL, save_fd);
+  save_sock_fd = fcntl(sock_fd, F_GETFL) | O_NONBLOCK;
+  fcntl(sock_fd, F_SETFL, save_sock_fd);
 
-  return fd;
+  return sock_fd;
 }
 // -----------------------------------------------------------------------------
 int sock_poll() {
-  if (fd == -1) {
+  if (sock_fd == -1) {
     printerr("Socket not initialized yet");
     return -1;
   }
   struct sockaddr_un cli_addr;
   unsigned cli_addr_len;
-  int rdaddr = accept(fd, (struct sockaddr *) &cli_addr, &cli_addr_len);
+  int rdaddr = accept(sock_fd, (struct sockaddr *) &cli_addr, &cli_addr_len);
   if (rdaddr < 0) {
     int err = errno;
     if (err == EWOULDBLOCK) {

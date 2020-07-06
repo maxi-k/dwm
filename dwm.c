@@ -40,6 +40,7 @@
 #include <X11/extensions/Xinerama.h>
 #endif /* XINERAMA */
 #include <X11/Xft/Xft.h>
+#include <sys/epoll.h>
 
 
 #include "drw.h"
@@ -1390,14 +1391,47 @@ void
 run(void)
 {
 	XEvent ev;
+        int next_event_status = 0;
+        int x_fd = ConnectionNumber(dpy);
+        int epoll_handle = epoll_create(2);
+
+        uint32_t events = EPOLLIN | EPOLLPRI;
+        struct epoll_event poll_data[2] = { // x poll data
+          {events, {.fd = 0}},                    // socket poll data
+          {events, {.fd = 1}} // x poll data
+        };
+        struct epoll_event wait_data[2];
+
+        epoll_ctl(epoll_handle, EPOLL_CTL_ADD, sock_fd, &poll_data[0]);
+        epoll_ctl(epoll_handle, EPOLL_CTL_ADD, x_fd, &poll_data[1]);
+
 	/* main event loop */
 	XSync(dpy, False);
-	while (running && !XNextEvent(dpy, &ev)) {
-		if (handler[ev.type])
-			handler[ev.type](&ev); /* call handler */
-                sock_poll();
+	while (running) {
+          int wait_res = epoll_wait(epoll_handle, wait_data, sizeof(wait_data), -1);
+          if (wait_res == -1) {
+            int err = errno;
+            fprintf(stderr, "Error while waiting for events: %d", err);
+            fflush(stderr);
+          }
+          for (int i = 0; i < wait_res; ++i) {
+            switch(wait_data[i].data.fd) {
+            case 0:
+              sock_poll();
+              break;
+            case 1:
+              while (XPending(dpy) && !(next_event_status = XNextEvent(dpy, &ev))) {
+                if (handler[ev.type])
+                  handler[ev.type](&ev); /* call handler */
+              }
+              break;
+            }
+          }
+          if (next_event_status != 0) {
+            break;
+          }
         }
-
+        close(epoll_handle);
 }
 
 void
