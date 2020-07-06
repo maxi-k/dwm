@@ -1,0 +1,17 @@
+#!/bin/sh
+
+NAME=dwm-builder
+VERSION=1.0
+
+# Rebuild if arg given
+[ ! -z $1 ] && docker build --tag $NAME:$VERSION .
+
+# Run
+docker run \
+  -it \
+  --name $NAME \
+  -v $(pwd):/project \
+  $NAME:$VERSION
+
+# Remove the container afterwards
+docker ps -a | grep $NAME | awk '{ print $1 }' | xargs docker rm

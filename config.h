@@ -1,14 +1,25 @@
-#include "/home/maxi/.cache/wal/colors-wal-dwm.h"
+// #include "/home/maxi/.cache/wal/colors-wal-dwm.h"
 /* See LICENSE file for copyright and license details. */
 
 /* appearance */
-static const unsigned int borderpx  = 2;        /* border pixel of windows */
-static const unsigned int gappx     = 0;        /* gap pixel of windows */
-static const unsigned int snap      = 32;       /* snap pixel */
-static const int showbar            = 1;        /* 0 means no bar */
-static const int topbar             = 0;        /* 0 means bottom bar */
-static const char *fonts[]          = { "monospace:size=10" };
-static const char dmenufont[]       = "monospace:size=10";
+static const unsigned int borderpx = 2;        /* border pixel of windows */
+static const unsigned int gappx    = 0;        /* gap pixel of windows */
+static const unsigned int snap     = 32;       /* snap pixel */
+static const int showbar           = 1;        /* 0 means no bar */
+static const int topbar            = 0;        /* 0 means bottom bar */
+static const char *fonts[]         = { "monospace:size=10" };
+static const char dmenufont[]      = "monospace:size=10";
+static const char norm_bg[]        = "#222222";
+static const char norm_bor[]       = "#444444";
+static const char norm_fg[]        = "#bbbbbb";
+static const char sel_fg[]         = "#eeeeee";
+static const char sel_bor[]        = "#005577";
+static const char sel_bg[]         = "#005577";
+static const char *colors[][3]      = {
+	/*               fg         bg         border   */
+	[SchemeNorm] = { norm_fg, norm_bg, norm_bor },
+	[SchemeSel]  = { sel_fg, sel_bg, sel_bor  },
+};
 
 /* tagging */
 static const char *tags[] = { "1", "2", "3", "4", "5", "6", "7", "8", "9" };
