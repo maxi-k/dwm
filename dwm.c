@@ -1414,16 +1414,20 @@ poll_x(void* args) {
       return NULL;
     }
   }
+  printerr("Thread!");
   XSync(dpy, False);
   while(running && !XNextEvent(dpy, &ev)) {
+    printerr("Event, sending to socket");
     int send_res = send(sock, &sendbuf, sizeof(sendbuf), 0);
     if (send_res == -1) {
       continue;
     }
+    printerr("Receiving from socket");
     int nrecv = recv(sock, recvbuf, COM_BUFSIZE - 1, 0);
     if (nrecv > 0) {
       recvbuf[nrecv] = '\0';
       printf("%s\n", recvbuf);
+      fflush(stdout);
     } else {
       printerr("Received nothing from socket");
     }

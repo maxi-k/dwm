@@ -1,4 +1,5 @@
 *.o
+*.log
 dwm
 dwmc
 patches

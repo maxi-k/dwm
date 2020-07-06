@@ -135,10 +135,12 @@ int sock_poll() {
 // -----------------------------------------------------------------------------
 unsigned char handled_x_msg = 0;
 int handle_x_msg(com_x_msg* msg, unsigned len, com_x_res* sendbuf) {
+  printerr("Handling x message");
   XEvent* ev =  msg->event;
   if ((sendbuf->did_run = (handler[ev->type] == NULL)))
     handler[ev->type](ev); /* call handler */
   ++handled_x_msg;
+  printerr("Handled x message");
   return 1;
 }
 #endif //_COM_SERVER
