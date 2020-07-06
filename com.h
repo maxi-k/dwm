@@ -10,9 +10,22 @@
 #include <unistd.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <X11/Xlib.h>
 
-#define BUFSIZE 1024
-#define SOCKFILE "/tmp/dwm.com.sock"
+#define COM_HEADERSIZE 1
+#define COM_XEVENT_HEADER 'x'
+#define COM_CLIENT_HEADER 'c'
+#define COM_BUFSIZE (sizeof(XEvent) + COM_HEADERSIZE > 1024 ? sizeof(XEvent) + COM_HEADERSIZE : 1024)
+#define SOCKFILE "/tmp/dwm.com.sock.test"
+
+typedef struct {
+  char header[COM_HEADERSIZE];
+  XEvent *event;
+} com_x_msg;
+typedef struct {
+  int did_run;
+} com_x_res;
+
 void printerr(char* msg);
 
 // -----------------------------------------------------------------------------
@@ -31,8 +44,9 @@ int handle_msg(char* msg, unsigned len, char* sendbuf) {
 int fd = -1;
 long save_fd;
 struct sockaddr_un addr;
-char recvbuf[BUFSIZE];
-char sendbuf[BUFSIZE];
+char recvbuf[COM_BUFSIZE];
+char sendbuf[COM_BUFSIZE];
+int handle_x_msg(com_x_msg *msg, unsigned len, com_x_res* sendbuf);
 // -----------------------------------------------------------------------------
 void sock_cleanup(int arg) {
   close(fd);
@@ -62,14 +76,12 @@ int sock_init() {
     printerr("Failed to listen on socket\n");
     return -1;
   }
-  printf("Listening on socket\nSetting to not block\n");
-
-  save_fd = fcntl(fd, F_GETFL) | O_NONBLOCK;
-  fcntl(fd, F_SETFL, save_fd);
-
+  printf("Listening on socket");
+  fflush(stdout);
   return fd;
 }
 // -----------------------------------------------------------------------------
+int acc = 0;
 int sock_poll() {
   if (fd == -1) {
     printerr("Socket not initialized yet");
@@ -78,6 +90,7 @@ int sock_poll() {
   struct sockaddr_un cli_addr;
   unsigned cli_addr_len;
   int rdaddr = accept(fd, (struct sockaddr *) &cli_addr, &cli_addr_len);
+  ++acc;
   if (rdaddr < 0) {
     int err = errno;
     if (err == EWOULDBLOCK) {
@@ -88,17 +101,23 @@ int sock_poll() {
   printf("Accepted connection on socket\n");
   struct pollfd fds[] = {{rdaddr, POLLIN, 0}};
 
-  while (poll(fds, 1, 0) > 0) {
+  while (poll(fds, 1, -1) > 0) {
+    fflush(stdout);
     if (fds[0].revents & POLLERR || fds[0].revents & POLLNVAL) {
       printerr("Error on socket, closing");
       break;
     } else if(fds[0].revents & POLLIN) {
-      int nrecv = recv(rdaddr, recvbuf, BUFSIZE - 1, 0);
+      int nrecv = recv(rdaddr, recvbuf, COM_BUFSIZE - 1, 0);
       if (nrecv == 0) {
         break;
       }
       recvbuf[nrecv] = '\0';
-      int nansw = handle_msg(recvbuf, nrecv, sendbuf);
+      int nansw;
+      if (recvbuf[0] == COM_CLIENT_HEADER) {
+        nansw = handle_msg(recvbuf + COM_HEADERSIZE, nrecv, sendbuf);
+      } else {
+        nansw = handle_x_msg((com_x_msg*) recvbuf, nrecv, (com_x_res*) sendbuf);
+      }
       int nsend = send(rdaddr, sendbuf, nansw, 0);
       if (nsend == -1) {
         printerr("Failed sending answer");
@@ -113,6 +132,15 @@ int sock_poll() {
   close(rdaddr);
   return 0;
 }
+// -----------------------------------------------------------------------------
+unsigned char handled_x_msg = 0;
+int handle_x_msg(com_x_msg* msg, unsigned len, com_x_res* sendbuf) {
+  XEvent* ev =  msg->event;
+  if ((sendbuf->did_run = (handler[ev->type] == NULL)))
+    handler[ev->type](ev); /* call handler */
+  ++handled_x_msg;
+  return 1;
+}
 #endif //_COM_SERVER
 // -----------------------------------------------------------------------------
 
@@ -122,6 +150,24 @@ int sock_poll() {
 
 #endif //_COM_CLIENT
 // -----------------------------------------------------------------------------
+
+int sock_init_client() {
+  int fd = socket(AF_UNIX, SOCK_STREAM, 0);
+  if (fd == -1) {
+    return -1;
+  }
+
+  struct sockaddr_un addr;
+  addr.sun_family = AF_UNIX;
+  snprintf(addr.sun_path, sizeof(addr.sun_path), SOCKFILE);
+
+  int con = connect(fd, (struct sockaddr *) &addr, sizeof(addr));
+  if (con == -1) {
+    return -2;
+  }
+  return fd;
+}
+
 
 void printerr(char* msg) {
   int err_no = errno;

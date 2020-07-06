@@ -40,6 +40,7 @@
 #include <X11/extensions/Xinerama.h>
 #endif /* XINERAMA */
 #include <X11/Xft/Xft.h>
+#include <pthread.h>
 
 
 #include "drw.h"
@@ -195,7 +196,7 @@ static void resize(Client *c, int x, int y, int w, int h, int interact);
 static void resizeclient(Client *c, int x, int y, int w, int h);
 static void resizemouse(const Arg *arg);
 static void restack(Monitor *m);
-static void run(void);
+static void run(int debug);
 static void scan(void);
 static int sendevent(Client *c, Atom proto);
 static void sendmon(Client *c, Monitor *m);
@@ -1386,18 +1387,65 @@ restack(Monitor *m)
 	while (XCheckMaskEvent(dpy, EnterWindowMask, &ev));
 }
 
-void
-run(void)
-{
-	XEvent ev;
-	/* main event loop */
-	XSync(dpy, False);
-	while (running && !XNextEvent(dpy, &ev)) {
-		if (handler[ev.type])
-			handler[ev.type](&ev); /* call handler */
-                sock_poll();
-        }
+void*
+poll_x(void* args) {
+  int do_debug = *((int*)args);
+  XEvent ev;
+  int sock = sock_init_client();
+  if (sock < 0) {
+    die("Failed to connect to socket.");
+  }
+  com_x_msg sendbuf  = {
+    {COM_XEVENT_HEADER},
+    &ev
+  };
+  char recvbuf[COM_BUFSIZE];
+  if (do_debug) {
+    sendbuf.header[0] = COM_CLIENT_HEADER;
+    int send_res = send(sock, &sendbuf, sizeof(sendbuf), 0);
+    if (send_res == -1) {
+      return NULL;
+    }
+    int nrecv = recv(sock, recvbuf, COM_BUFSIZE - 1, 0);
+    if (nrecv > 0) {
+      recvbuf[nrecv] = '\0';
+      return NULL;
+    } else {
+      return NULL;
+    }
+  }
+  XSync(dpy, False);
+  while(running && !XNextEvent(dpy, &ev)) {
+    int send_res = send(sock, &sendbuf, sizeof(sendbuf), 0);
+    if (send_res == -1) {
+      continue;
+    }
+    int nrecv = recv(sock, recvbuf, COM_BUFSIZE - 1, 0);
+    if (nrecv > 0) {
+      recvbuf[nrecv] = '\0';
+      printf("%s\n", recvbuf);
+    } else {
+      printerr("Received nothing from socket");
+    }
+  }
+  close(sock);
+  printf("Closing x poll thread due to function exit.");
+  return NULL;
+}
 
+void
+run(int debug)
+{
+  pthread_t x_poll_thread;
+  pthread_attr_t attr;
+  if(pthread_attr_init(&attr)) {
+    die("Error while initializing pthread attr.");
+  }
+  pthread_create(&x_poll_thread, &attr, &poll_x, &debug);
+  while (running) {
+    sock_poll();
+  }
+  pthread_join(x_poll_thread, NULL);
 }
 
 void
@@ -2163,14 +2211,11 @@ main(int argc, char *argv[])
 		die("dwm-"VERSION);
         else if (argc == 2 && !strcmp("-d", argv[1])) {
           sock_init();
-          while (1) {
-            sock_poll();
-            sleep(1);
-          }
+          run(1);
           sock_cleanup(0);
           die("done testing sockets");
         } else if (argc != 1)
-		die("usage: dwm [-v]");
+		die("usage: dwm [-v][-d]");
 	if (!setlocale(LC_CTYPE, "") || !XSupportsLocale())
 		fputs("warning: no locale support\n", stderr);
 	if (!(dpy = XOpenDisplay(NULL)))
@@ -2183,7 +2228,7 @@ main(int argc, char *argv[])
 		die("pledge");
 #endif /* __OpenBSD__ */
 	scan();
-	run();
+	run(0);
 	cleanup();
 	XCloseDisplay(dpy);
 	return EXIT_SUCCESS;

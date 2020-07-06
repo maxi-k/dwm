@@ -33,6 +33,7 @@ dwmc: ${OBJ_CLIENT}
 
 clean:
 	rm -f dwm ${OBJ} dwm-${VERSION}.tar.gz
+	rm -f dwmc ${OBJ_CLIENT}
 
 dist: clean
 	mkdir -p dwm-${VERSION}

@@ -23,38 +23,29 @@ int main(int argc, char** argv) {
 
   if (argc == 2) {
     if(!strcmp("-s", argv[1]))
-       die("Buffer Size %d", BUFSIZE);
+      die("%d", COM_BUFSIZE - COM_HEADERSIZE);
     if(!strcmp("-v", argv[1]))
-       die("dwm-"VERSION);
-    if(!strcmp("-h", argv[1]) || !strcmp("--help", argv[1]))
-      die("No Args: Send stdin to dwm\nWith Args:\n -s: Print buffer size\n -v: Print dwm version");
+      die("dwm-"VERSION);
+    die("No Args: Send stdin to dwm\nWith Args:\n -s: Print maximum message size\n -v: Print dwm version");
   }
 
   signal(SIGINT, closer);
 
-  fd = socket(AF_UNIX, SOCK_STREAM, 0);
-  if (fd == -1) {
-    printerr("Failed to create socket");
+  fd = sock_init_client();
+  if (fd < 0) {
+    printerr("Failed to create or connect to socket.");
     return -1;
   }
 
-  struct sockaddr_un addr;
-  addr.sun_family = AF_UNIX;
-  snprintf(addr.sun_path, sizeof(addr.sun_path), SOCKFILE);
-
-  int con = connect(fd, (struct sockaddr *) &addr, sizeof(addr));
-  if (con == -1) {
-    printerr("Failed to connect to socket");
-    return -1;
-  }
-
-  char inbuf[BUFSIZE];
-  char recvbuf[BUFSIZE];
+  char inbuf[COM_BUFSIZE];
+  char recvbuf[COM_BUFSIZE];
+  inbuf[0] = COM_CLIENT_HEADER;
   while(1) {
-    char *read = fgets(inbuf, BUFSIZE - 1, stdin);
+    char *read = fgets(inbuf + COM_HEADERSIZE, COM_BUFSIZE - 1, stdin);
     // fprintf(stderr, "Read: '%c'; res %s", inbuf[0], read);
     // fflush(stderr);
-    if (read == NULL || inbuf[0] == '\0' || inbuf[0] == '\n' || inbuf[0] == EOF) {
+    char msg_start = inbuf[COM_HEADERSIZE];
+    if (read == NULL || msg_start == '\0' || msg_start == '\n' || msg_start == EOF) {
       break;
     }
     int len = strlen(inbuf);
@@ -64,7 +55,7 @@ int main(int argc, char** argv) {
       continue;
     }
     // TODO: poll
-    int nrecv = recv(fd, recvbuf, BUFSIZE - 1, 0);
+    int nrecv = recv(fd, recvbuf, COM_BUFSIZE - 1, 0);
     if (nrecv > 0) {
       recvbuf[nrecv] = '\0';
       printf("%s\n", recvbuf);
