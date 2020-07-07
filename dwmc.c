@@ -23,7 +23,7 @@ int main(int argc, char** argv) {
 
   fd = socket(AF_UNIX, SOCK_STREAM, 0);
   if (fd == -1) {
-    printerr("Failed to create socket");
+    printerr("Failed to create socket", errno);
     return -1;
   }
 
@@ -33,7 +33,7 @@ int main(int argc, char** argv) {
 
   int con = connect(fd, (struct sockaddr *) &addr, sizeof(addr));
   if (con == -1) {
-    printerr("Failed to connect to socket");
+    printerr("Failed to connect to socket", errno);
     return -1;
   }
 
@@ -49,7 +49,7 @@ int main(int argc, char** argv) {
     int len = strlen(inbuf);
     int send_res = send(fd, inbuf, len, 0);
     if (send_res == -1) {
-      printerr("Failed to send data to the socket");
+      printerr("Failed to send data to the socket", errno);
       continue;
     }
     // TODO: poll
@@ -58,7 +58,7 @@ int main(int argc, char** argv) {
       recvbuf[nrecv] = '\0';
       printf("%s\n", recvbuf);
     } else {
-      printerr("Received nothing from socket");
+      printerr("Received nothing from socket", errno);
     }
   }
   fflush(stdin);

@@ -13,7 +13,7 @@
 
 #define BUFSIZE 1024
 #define SOCKFILE "/tmp/dwm.com.sock"
-void printerr(char* msg);
+void printerr(char* msg, int err_no);
 
 // -----------------------------------------------------------------------------
 #ifdef _COM_SERVER
@@ -44,7 +44,7 @@ int sock_init() {
   signal(SIGINT, sock_cleanup);
   sock_fd = socket(AF_UNIX, SOCK_STREAM, 0);
   if (sock_fd == -1) {
-    printerr("Failed to create socket.\n");
+    printerr("Failed to create socket.\n", errno);
     return -1;
   }
 
@@ -52,17 +52,15 @@ int sock_init() {
   snprintf(addr.sun_path, sizeof(addr.sun_path), SOCKFILE);
   int con = bind(sock_fd, (struct sockaddr *) &addr, sizeof(addr));
   if (con == -1) {
-    printerr("Failed to bind socket.\n");
+    printerr("Failed to bind socket.", errno);
     return -1;
   }
-  printf("Connected to socket.\n");
 
   int lis = listen(sock_fd, 10);
   if (lis == -1) {
-    printerr("Failed to listen on socket\n");
+    printerr("Failed to listen on socket.", errno);
     return -1;
   }
-  printf("Listening on socket\nSetting to not block\n");
 
   save_sock_fd = fcntl(sock_fd, F_GETFL) | O_NONBLOCK;
   fcntl(sock_fd, F_SETFL, save_sock_fd);
@@ -72,7 +70,7 @@ int sock_init() {
 // -----------------------------------------------------------------------------
 int sock_poll() {
   if (sock_fd == -1) {
-    printerr("Socket not initialized yet");
+    printerr("Socket not initialized yet", errno);
     return -1;
   }
   struct sockaddr_un cli_addr;
@@ -83,24 +81,23 @@ int sock_poll() {
     if (err == EWOULDBLOCK) {
       return 1;
     }
-    printerr("Error while reading from socket");
+    printerr("Error while reading from socket", errno);
   }
-  printf("Accepted connection on socket, receiving first batch:\n");
   int nrecv = recv(rdaddr, recvbuf, BUFSIZE - 1, 0);
   if (nrecv == 0) {
-    printerr("Received nothing from first batch");
+    printerr("Received nothing from first batch", errno);
     return -1;
   }
   recvbuf[nrecv] = '\0';
   int nansw = handle_msg(recvbuf, nrecv, sendbuf);
   int nsend = send(rdaddr, sendbuf, nansw, 0);
   if (nsend == -1) {
-    printerr("Failed sending answer");
+    printerr("Failed sending answer", errno);
   }
   struct pollfd fds[] = {{rdaddr, POLLIN, 0}};
   while (poll(fds, 1, 0) > 0) {
     if (fds[0].revents & POLLERR || fds[0].revents & POLLNVAL) {
-      printerr("Error on socket, closing");
+      printerr("Error on socket, closing", errno);
       break;
     } else if(fds[0].revents & POLLIN) {
       int nrecv = recv(rdaddr, recvbuf, BUFSIZE - 1, 0);
@@ -111,15 +108,10 @@ int sock_poll() {
       int nansw = handle_msg(recvbuf, nrecv, sendbuf);
       int nsend = send(rdaddr, sendbuf, nansw, 0);
       if (nsend == -1) {
-        printerr("Failed sending answer");
+        printerr("Failed sending answer", errno);
       }
     }
-    fflush(stdin);
-    fflush(stderr);
   }
-  printf("Stopped polling, closing client socket.\n");
-  fflush(stdin);
-  fflush(stderr);
   close(rdaddr);
   return 0;
 }
@@ -133,8 +125,7 @@ int sock_poll() {
 #endif //_COM_CLIENT
 // -----------------------------------------------------------------------------
 
-void printerr(char* msg) {
-  int err_no = errno;
+void printerr(char* msg, int err_no) {
   fprintf(stderr, "Error: %s, errno: %d\n", msg, err_no);
   fflush(stderr);
 }
