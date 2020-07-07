@@ -1420,7 +1420,8 @@ run(void)
               sock_poll();
               break;
             case 1:
-              while (XPending(dpy) && !(next_event_status = XNextEvent(dpy, &ev))) {
+              while (XEventsQueued(dpy, QueuedAlready) &&
+                     !(next_event_status = XNextEvent(dpy, &ev))) {
                 if (handler[ev.type])
                   handler[ev.type](&ev); /* call handler */
               }
