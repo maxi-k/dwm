@@ -1412,7 +1412,7 @@ run(void)
           if (wait_res == -1) {
             int err = errno;
             fprintf(stderr, "Error while waiting for events: %d", err);
-            fflush(stderr);
+            continue;
           }
           for (int i = 0; i < wait_res; ++i) {
             switch(wait_data[i].data.fd) {

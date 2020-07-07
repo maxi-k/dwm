@@ -127,7 +127,6 @@ int sock_poll() {
 
 void printerr(char* msg, int err_no) {
   fprintf(stderr, "Error: %s, errno: %d\n", msg, err_no);
-  fflush(stderr);
 }
 
 #endif //_COM_H_DEFINED

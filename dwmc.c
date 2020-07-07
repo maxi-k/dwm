@@ -41,8 +41,6 @@ int main(int argc, char** argv) {
   char recvbuf[BUFSIZE];
   while(1) {
     char *read = fgets(inbuf, BUFSIZE - 1, stdin);
-    // fprintf(stderr, "Read: '%c'; res %s", inbuf[0], read);
-    // fflush(stderr);
     if (read == NULL || inbuf[0] == '\0' || inbuf[0] == '\n' || inbuf[0] == EOF) {
       break;
     }
