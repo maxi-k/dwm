@@ -85,9 +85,19 @@ int sock_poll() {
     }
     printerr("Error while reading from socket");
   }
-  printf("Accepted connection on socket\n");
+  printf("Accepted connection on socket, receiving first batch:\n");
+  int nrecv = recv(rdaddr, recvbuf, BUFSIZE - 1, 0);
+  if (nrecv == 0) {
+    printerr("Received nothing from first batch");
+    return -1;
+  }
+  recvbuf[nrecv] = '\0';
+  int nansw = handle_msg(recvbuf, nrecv, sendbuf);
+  int nsend = send(rdaddr, sendbuf, nansw, 0);
+  if (nsend == -1) {
+    printerr("Failed sending answer");
+  }
   struct pollfd fds[] = {{rdaddr, POLLIN, 0}};
-
   while (poll(fds, 1, 0) > 0) {
     if (fds[0].revents & POLLERR || fds[0].revents & POLLNVAL) {
       printerr("Error on socket, closing");
