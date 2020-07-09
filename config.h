@@ -1,4 +1,3 @@
-// #include "/home/maxi/.cache/wal/colors-wal-dwm.h"
 /* See LICENSE file for copyright and license details. */
 
 /* appearance */
@@ -8,14 +7,15 @@ static const unsigned int snap     = 32;       /* snap pixel */
 static const int showbar           = 1;        /* 0 means no bar */
 static const int topbar            = 0;        /* 0 means bottom bar */
 static const char *fonts[]         = { "monospace:size=10" };
-static const char dmenufont[]      = "monospace:size=10";
-static const char norm_bg[]        = "#222222";
-static const char norm_bor[]       = "#444444";
-static const char norm_fg[]        = "#bbbbbb";
-static const char sel_fg[]         = "#eeeeee";
-static const char sel_bor[]        = "#005577";
-static const char sel_bg[]         = "#005577";
-static const char *colors[][3]      = {
+static char dmenufont[]      = "monospace:size=10";
+
+static char norm_bg[]        = "#222222";
+static char norm_bor[]       = "#444444";
+static char norm_fg[]        = "#bbbbbb";
+static char sel_fg[]         = "#eeeeee";
+static char sel_bor[]        = "#005577";
+static char sel_bg[]         = "#005577";
+static char *colors[][3]      = {
 	/*               fg         bg         border   */
 	[SchemeNorm] = { norm_fg, norm_bg, norm_bor },
 	[SchemeSel]  = { sel_fg, sel_bg, sel_bor  },
@@ -63,11 +63,10 @@ static const Layout layouts[] = {
 
 /* commands */
 static char dmenumon[2] = "0"; /* component of dmenucmd, manipulated in spawn() */
-static const char *dmenucmd[] = { "dmenu_run", "-m", dmenumon, "-fn", dmenufont, "-nb", norm_bg, "-nf", norm_fg, "-sb", sel_bg, "-sf", sel_fg, NULL };
+static char *dmenucmd[] = { "dmenu_run", "-m", dmenumon, "-fn", dmenufont, "-nb", norm_bg, "-nf", norm_fg, "-sb", sel_bg, "-sf", sel_fg, NULL };
 
 static Key keys[] = {
 	/* modifier                     key            function        argument */
-	{ MODKEY,                       XK_b,          togglebar,      {0} },
 	{ MODKEY,                       XK_j,          focusstack,     {.i = +1 } },
 	{ MODKEY,                       XK_k,          focusstack,     {.i = -1 } },
 	{ MODKEY,                       XK_i,          incnmaster,     {.i = +1 } },

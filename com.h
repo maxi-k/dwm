@@ -18,14 +18,30 @@ void printerr(char* msg, int err_no);
 // -----------------------------------------------------------------------------
 #ifdef _COM_SERVER
 
+#define RET_RESPONSE(msg) memcpy(sendbuf, msg, sizeof(msg)); return sizeof(msg)
+
 int handle_msg(char* msg, unsigned len, char* sendbuf) {
   /* CUSTOM USER CODE HERE */
   printf("Received message: \033[1m%s\033[0m\n", msg);
   if (msg[0] == 'b') {
     togglebar(NULL);
+  } else if (msg[0] == 'c') {
+    unsigned col_len = 7;
+    char* color_ptrs[] = {
+      norm_fg, norm_bg, norm_bor,
+      sel_fg, sel_bg, sel_bor
+    };
+    if (len != LENGTH(color_ptrs) * col_len + 2) {
+      RET_RESPONSE("Invalid Command");
+    }
+    for (unsigned i = 0; i < LENGTH(color_ptrs); ++i) {
+      char* start = msg + 1 + i * col_len;
+      memcpy(color_ptrs[i], start, col_len);
+    }
+    for (int i = 0; i < LENGTH(colors); i++)
+      scheme[i] = drw_scm_create(drw, colors[i], 3);
   }
-  sendbuf[0] = 'O'; sendbuf[1] = 'K';
-  return 3;
+  RET_RESPONSE("OK");
 }
 // -----------------------------------------------------------------------------
 int sock_fd = -1;
