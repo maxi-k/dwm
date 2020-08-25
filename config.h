@@ -94,8 +94,8 @@ static Key keys[] = {
 	{ MODKEY|ShiftMask,             XK_space,      togglefloating, {0} },
 	{ MODKEY,                       XK_0,          view,           {.ui = ~0 } },
 	{ MODKEY|ShiftMask,             XK_0,          tag,            {.ui = ~0 } },
-	{ MODKEY,                       XK_semicolon,  focusmon,       {.i = +1 } },
-     /* { MODKEY,                       XK_apostrophe, focusmon,       {.i = -1 } }, */
+	{ MODKEY,                       XK_apostrophe, focusmon,       {.i = +1 } },
+     /* { MODKEY,                       XK_semicolon,  focusmon,       {.i = -1 } }, */
 	{ MODKEY|ShiftMask,             XK_apostrophe, tagmon,         {.i = +1 } },
      /* { MODKEY|ShiftMask,             XK_semicolon,  tagmon,         {.i = -1 } }, */
 	TAGKEYS(                        XK_1,                          0)
